@@ -1,0 +1,110 @@
+1. Assuming the XINU text begins at address 0x0, draw a rough diagram of XINU’s memory layout with addresses derived from your experimental measurements. Include the information you uncovered from running your version of printsegaddress() and printprocstks().
+|------------------| <== base main: 0x00ffeff8
+|                  | 
+|       main       | length = 4096 bytes
+|                  |
+|------------------| <== limit 0x00ffdffc
+|       Free       |
+|      memory      |
+|------------------|
+|      Heap        |
+|__________________|end 0x00031038
+|       bss        |
+|__________________|edata 0x0002353d
+|       data       |
+|__________________|etext 0x0001e07d
+|       text       |
+|__________________|0x0
+
+2. What is the difference in stack top address before and after calling printtos() ? Draw a diagram to illustrate what are the contents of the items pushed into the stack between these two time points.
+
+The difference in stack top address: 
+Before - 0x00ffefb0
+After - 0x00ffefa8
+Difference - 8 bytes
+
+When the printtos() is called:
+i) the return address of the main() is pushed onto the stack which accounts for 4 bytes of memory in the stack. This is done implicitly by the 'call' instruction.
+ii) Further the EBP of main() (The frame pointer) is pushed onto the stack which further accounts for 4 bytes after which the memory of printtos() starts. This is done explicitly by the callee, here, printtos().
+Hence, a total difference of 8 bytes can be seen.
+|-----------------|
+|  main: Stack    | <-- Before <-- 0x00ffefb0
+|-----------------|
+|  main: Return   | <-- 0x00ffefac 
+|-----------------|
+|  main: EBP      | <-- After <--0x00ffefa8
+|-----------------|
+|   printtos()    | <-- Local vairables
+|-----------------|
+
+3. Which byte order is adopted in the host machine that we are using ? How did you find out ?
+
+Little-endian byte order is adopted by the host machine. This was explicitly stated in the readings provided: A brief guide on the 80386 architecture. Also to find whether the underlying architecture is little endian or big endian I ran a small C program to check the order in which the hex value is stored inside the memory.
+
+#include <stdio.h>
+int main ()
+{
+  unsigned int x = 0x76543210;
+  char *c = (char*) &x;
+ 
+  printf ("*c is: 0x%x\n", *c);
+  if (*c == 0x10)
+  {
+    printf ("Underlying architecture is little endian. \n");
+  }
+  else
+  {
+     printf ("Underlying architecture is big endian. \n");
+  }
+ 
+  return 0;
+}
+
+The byte content in the little-endian architecture for 'unsigned int x = 0x76543210' is:
+Little-endian format:
+---------------------
+Byte address  | 0x01 | 0x02 | 0x03 | 0x04 | 
+              +++++++++++++++++++++++++++++
+Byte content  | 0x10 | 0x32 | 0x54 | 0x76 |
+
+
+Source: https://cs-fundamentals.com/tech-interview/c/c-program-to-check-little-and-big-endian-architecture
+
+4. Briefly describe the mov, push, pusha, pop, and popa instructions in the x86.
+
+MOV - MOV instruction copies data from the first to the second operand. The source can be a register, memory, or an immediate value while the destination must be either a memory location or a register.
+syntax: mov source, destination
+PUSH - PUSH instruction decrements the stack pointer by 4 bytes and stores the data specified as the argument into the location pointed to by the stack pointer.
+syntax:
+push <reg32>
+push <mem>
+push <con32>
+
+POP - POP instruction pops the 4-byte data stored in the stack pointer location and stores in the argument, and then increments the stack pointer.
+pop <reg32>
+pop <mem>
+
+PUSHA - PUSHA instruction pushes all general-purpose registers onto the stack in the order AX,CX,DX,BX,SP,BP,SI,DI. The value of SP pushed is the value before the instruction is executed. It is useful for saving the state before an operation that could potentially change these registers.
+POPA - POPA instruction pops all general-purpose registers out of the stack in the reverse order of PUSHA, i.e., DI,SI,BP,SP,BX,DX,CX,AX. 
+
+5. In a stack frame, local variables are stored below the top of the stack. In task 3, does your result show all the local variables declared in your printtos function? If not, can you explain that?
+
+No, the local variables which have been declared are not being shown in the stack. This is mainly due to compiler optimization. As the local variables are not used anywhere in the program, they are not pushed onto the stack. These are some of the steps in compiler optimization to reduce the time and operation.
+
+Here are the local variables :
+unsigned long temp1 = 0xfefe;
+unsigned long temp2 = 0xefef;
+
+Once the compiler optimization was disabled or introducing another instruction
+
+temp1 = temp1 + temp2;
+
+these values can be seen on the stack. As the variables are being used, the compiler pushes them onto the stack.
+Stack:
+void printtos()
+Before[0x00ffefb0]: 0x0001eaa4
+After [0x00ffefa8]: 0x00ffefec
+         element[0x00ffefa4]: 0x00000000
+         element[0x00ffefa0]: 0x00000000
+         element[0x00ffef9c]: 0x0000fefe
+         element[0x00ffef98]: 0x0000efef

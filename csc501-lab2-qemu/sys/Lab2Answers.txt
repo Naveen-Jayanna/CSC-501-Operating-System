@@ -1,0 +1,78 @@
+1. The priority inversion problem could cause that a higher-priority process needs to wait for the completion of a lower-priority process.
+a) Priority inheritance is one approach to address this issue. Please give another approach and briefly describe its idea.
+
+Priority ceiling protocol is another another solution to the priority inversion issue. The objective of this approach is to assign each lock a priority ceiling. A lock's priority ceiling is its highest priority among all potential processes that may acquire the lock.  When a process acquires a lock, its priority is temporarily increased to the lock's priority ceiling. This makes sure that a lower priority process that is holding a lock that the higher priority process needs can't preempt a higher priority process.
+
+For example, say there are three processes, T1 , T2, and T3, with priorities P1, P2 and P3 respectively where P1 < P2 < P3. All the 3 processes needs to access a shared resource R.
+
+To implement PCP, resource R is assigned a priority ceiling level, which is equal to the highest priority of any task that may lock R. In this case, R's priority ceiling level would be P3, since T3 has the highest priority of any task that may lock R.
+
+Now suppose T1, with priority P1, attempts to lock R. Since T3 has the highest priority of any task that may lock R, T1's priority is temporarily raised to P3 while it is holding the lock. This ensures that T2, which has a priority of P2, cannot preempt T1 while T1 is holding the lock. Once T1 releases the lock, its priority is restored to P1 thus ensures that the system returns to its original state.
+
+The two types are:
+Basic PCP: In this protocol, each resource is assigned a priority ceiling value that is the maximum priority of all the processes that may acquire the resource.
+Immediate Priority Ceiling Protocol (IPCP): This is an extension of the basic PCP in which each process is also assigned a priority ceiling value.
+
+b) Design a test case to show that your approach can address the priority inversion problem.
+
+To show the priority inversion problem in locks and semaphores, I have considered a case with 3 writer processes and 2 CPU-bound processes. 3 writer and CPU-bound processes with their priority are: writer1 - 90, writer2 - 50, writer3 - 20, proccpu1 - 65, proccpu1 - 75. Initially writer3(P=20) acquires the lock/semaphore. This leads to writer2 and writer1 being blocked when they try to acquire the lock/semaphore. This is followed by 2 CPU-bound process with P=65,75.
+
+The following shows the result obtained:
+------------------------------------------Task 2-----------------------------------------------
+********** Priority inversion problem in locks solved by priority inheritance **********
+
+-start writer 3, then sleep 3s. lock granted to writer 3 (priority =  20)
+  writer3: to acquire lock
+  writer3: acquired lock, sleep 3s
+-start writer 2, then sleep 3s. writer 2 (priority =  50) blocked on the lock
+  writer2: to acquire lock
+-start writer 1. writer 1 (priority =  90) blocked on the lock
+  writer1: to acquire lock
+-start proccpu1 (priority =  65)
+  proccpu1: begins execution
+-start proccpu2 (priority = 75)
+  proccpu2: begins execution
+  writer3: writer is running again
+  writer3: to release lock
+  writer2: acquired lock
+  writer2: to release lock
+  writer1: acquired lock
+  writer1: to release lock
+  proccpu2: ends execution
+  proccpu1: ends execution
+
+********** Semaphore - Problem of priority inversion **********
+
+-start writer 3, then sleep 1s. semaphore granted to writer 3 (priority =  20)
+  writer2: to acquire sem
+  writer2: acquired sem, sleep 3s
+-start writer 2. writer 2 (priority =  50) blocked on the semaphore
+  writer2: to acquire sem
+-start writer 1. writer 1 (priority =  90) blocked on the semaphore
+  writer1: to acquire sem
+-start proccpu1 (priority =  65)
+  proccpu1: begins execution
+-start proccpu2 (priority = 75)
+  proccpu2: begins execution
+  writer2: writer is resumed
+  writer2: ends execution
+  writer2: acquired sem, sleep 3s
+  proccpu2: ends execution
+  proccpu1: ends execution
+  writer2: writer is resumed
+  writer2: ends execution
+  writer1: acquired sem
+  writer1: to release sem
+
+From the results it is clear that locks have no issues of priority inversion as priority inheritance has been implemented in this PA. Hence, writer3's priority is elevated (to 90) and finishes first and releases the lock, followed by writer2 acquiring and releasing the lock then finally by writer1. Once the writers finish their execution the CPU-bound processes are executed.
+
+But, while dealing with semaphore, the problem with priority inversion arises. The writer with highest priority (writer1=90) has to wait till the completion of all the processes with lower priority.
+
+The designed testcase for addressing priority inversion problem in locks and semaphores is saved in the file sys/task1.c and TMP/task1.c.
+
+2. problem in this pseudo-code: task2_sync_issue.c. 
+There are several problems in the pseudo-code:
+i) Starvation of writer: As the upper bound for the number of reader is not defined, a writer process waits indefinitely leading to an unbounded wait problem as the number of writer increases.
+ii) in writer code snippet, 
+- write(bufstr, buffer); // Clear the buffer then write to the buffer
+The writer clears the buffer before writing. this causes the existing data to be overwritten. For example, if a reader is waiting to acquire the lock to read a perticular block of data and the writer overwrites the data and then releases the lock. This leads to data inconsistency as the reader reads data which has been overwritten and not the actual intended data.

@@ -1,0 +1,60 @@
+CSC 501 - Operating Systems Principles
+PA1 Additional Questions
+
+Name: Naveen Jayanna
+Unity ID: njayann
+
+
+
+1. What are the advantages and disadvantages of each of the two scheduling policies? Also, give the advantages and disadvantages of the round robin scheduling policy originally implemented in Xinu.
+
+a. Aging based scheduler:
+Advantage:
+- As the priority of processes are incremented over time, age based scheduling prevents starvation of low-priority processes to a certain degree.
+- As the scheduler is easy to implement by incrementing the priority of each process, this leads to lesser overhead, context-switching, and CPU idle time. 
+
+Disadvantage:
+- As each process is being incremented by the same value, the lower priority process still remain lesser than its higher priority process counterparts leading to an unfair scenario.
+- The time taken for a process to accumulate enough priority to overpass the current highest priority process is considerable which leads to high response time for all the processes.
+
+b. Linux-like Scheduler:
+Advantage:
+- Starvation is removed, as each process gets an equal share of CPU time(QUANTUM) for its execution and those processes which are denied of CPU ticks in the previous epochs eventually gain enough "goodness" and priority increases leading to being scheduled.
+- Creates a fair ground for processes to compete for CPU, as each process is evaluated based on its "goodness" value to allocate the CPU ticks for the current epoch.
+
+Disadvantage:
+- Very complex to implement as a developer has to deal with several dynamically changing variables like the goodness value, unused quantum for each process during each epoch and update them accordingly.
+- As each process runs for an allocated CPU ticks, context switching increases leading to increase CPU idle time.
+
+c. Round Robin scheduling policy in XINU OS:
+Advantage:
+- A straight-forward scheduler which prefers process with high priority and equal priority processes get equal time. 
+- Requires very less context switching leading to good CPU utilization.
+
+Disadvantage:
+- leads to starvation and unfair treatment of low priority processes.
+- In a high workload system, low priority process may take a long time before scheduling.
+
+2. Describe when each of the schedulers run the NULL process.
+
+The main idea of NULL process is to keep the CPU busy when there are no other processes in the ready queue.
+
+Aging based Scheduler
+
+The NULL process is initialized with the lowest priority i.e., 0 and is scheduled either when there are no processes in the ready queue or it has spent enough time in the ready queue, where its priority has increased significantly and has surpassed other processes in the queue. 
+
+Linux-Like Scheduler
+
+The NULL process is only scheduled when the ready queue is empty.
+
+Round-Robin Scheduler
+
+The NULL process is initialized with the lowest priority i.e., 0, and hence is starved till there are no process in the ready queue, and only then it gets scheduled. Once a new process ready to get scheduled, the NULL process is pushed back into the queue with the same priority i.e., 0, and continues to starve until it is scheduled again.
+
+3. Give two suggestions how the above mentioned aging based scheduler could be changed to attain better fairness keeping the fundamental point of incrementing the priority to be the same in your new ideas.
+
+The main disadvantage of Age based scheduler is that each process is being incremented by the same amount. This can be modified to attain a better fairness as follows:
+
+- instead of incrementing all the processes by the same amount/value, we can implement a mechanism to adjust the increment value to be inversely proportional to the current priority. This makes the higher priority processes to age slowly while the lower priority processes age rapidly, which increases the fairness.
+- combining with the default XINU scheduler which reduces starvation and increases the response time for all the processes.
+- giving more importance to the processes which have spent more time in the ready queue. This can be done by increasing the priority of these processes by a greater value than the frequently scheduled processes. By doing this, the processes which are starved for a long time will be scheduled in the future.
